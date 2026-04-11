@@ -1,0 +1,19 @@
+{
+  "total_jobs_scraped": 64,
+  "fresher_friendly_jobs": 64,
+  "fresher_percentage": 100.0,
+  "top_skill": "general ai/ml",
+  "top_skill_percentage": 75.0,
+  "top_hiring_company": "N/A",
+  "most_common_role": "Intern/Trainee",
+  "top_10_skills": [
+    "general ai/ml",
+    "machine learning",
+    "computer vision",
+    "data science",
+    "data analysis",
+    "nlp",
+    "python",
+    "generative ai"
+  ]
+}
