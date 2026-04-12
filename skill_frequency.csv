@@ -1,9 +1,51 @@
 skill,count,percentage
-general ai/ml,48,75.0
-machine learning,8,12.5
-computer vision,2,3.1
-data science,2,3.1
-data analysis,1,1.6
-nlp,1,1.6
-python,1,1.6
-generative ai,1,1.6
+machine learning,92,50.8
+python,70,38.7
+data analysis,57,31.5
+artificial intelligence,38,21.0
+natural language processing,28,15.5
+sql,27,14.9
+data,26,14.4
+data analytics,24,13.3
+computer science,24,13.3
+data science,23,12.7
+deep learning,22,12.2
+power bi,20,11.0
+machine,19,10.5
+analytical,18,9.9
+data mining,14,7.7
+cloud,13,7.2
+data visualization,12,6.6
+data analyst,12,6.6
+tensorflow,12,6.6
+analytics,11,6.1
+gcp,11,6.1
+generative ai,11,6.1
+forecasting,11,6.1
+data quality,10,5.5
+data management,10,5.5
+ai,9,5.0
+automation,9,5.0
+data scientist,9,5.0
+troubleshooting,8,4.4
+monitoring,8,4.4
+llm,8,4.4
+analysis,7,3.9
+aws,7,3.9
+healthcare,7,3.9
+coding,7,3.9
+computer vision,7,3.9
+langchain,7,3.9
+operations,7,3.9
+data modeling,6,3.3
+data validation,6,3.3
+excel,6,3.3
+scikit-learn,6,3.3
+processing,6,3.3
+mysql,6,3.3
+neural networks,6,3.3
+pytorch,6,3.3
+predictive modeling,6,3.3
+mlops,6,3.3
+open source,6,3.3
+tableau,5,2.8

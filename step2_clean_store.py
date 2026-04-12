@@ -1,6 +1,10 @@
 # ============================================================
 # STEP 2: CLEAN DATA + STORE IN MYSQL
 # ============================================================
+# FIXES APPLIED:
+#   1. skills_list (Python list) converted to string before MySQL storage
+#   2. skill_df safely initialized so final to_sql() never crashes
+# ============================================================
 
 import pandas as pd
 import mysql.connector
@@ -12,7 +16,6 @@ from collections import Counter
 df = pd.read_csv("raw_jobs.csv")
 print(f"Raw records: {len(df)}")
 
-# ✅ Fill all NaN values immediately
 df["title"]      = df["title"].fillna("").astype(str)
 df["company"]    = df["company"].fillna("").astype(str)
 df["experience"] = df["experience"].fillna("N/A").astype(str)
@@ -20,19 +23,17 @@ df["salary"]     = df["salary"].fillna("Not Disclosed").astype(str)
 df["location"]   = df["location"].fillna("").astype(str)
 df["skills"]     = df["skills"].fillna("").astype(str)
 df["posted"]     = df["posted"].fillna("N/A").astype(str)
+df["job_link"]   = df["job_link"].fillna("N/A").astype(str)
 
 # ============================================================
 # CLEANING
 # ============================================================
 
-# 1. Remove duplicates
 df.drop_duplicates(subset=["title", "company"], inplace=True)
 print(f"After dedup: {len(df)}")
 
-# 2. Clean title
 df["title_clean"] = df["title"].str.lower().str.strip()
 
-# 3. Categorize job type
 def categorize_job(title):
     if not isinstance(title, str) or title.strip() == "":
         return "Other"
@@ -52,7 +53,6 @@ def categorize_job(title):
 
 df["job_category"] = df["title_clean"].apply(categorize_job)
 
-# 4. Extract experience numbers
 def extract_exp(exp_str):
     if pd.isna(exp_str) or exp_str == "N/A":
         return None
@@ -61,12 +61,10 @@ def extract_exp(exp_str):
 
 df["exp_min_years"] = df["experience"].apply(extract_exp)
 
-# 5. Flag fresher-friendly
 df["is_fresher_friendly"] = df["exp_min_years"].apply(
     lambda x: True if x is None or x <= 1 else False
 )
 
-# 6. Clean salary
 def clean_salary(sal):
     if not isinstance(sal, str) or sal.strip() == "":
         return None
@@ -76,7 +74,6 @@ def clean_salary(sal):
 
 df["salary_clean"] = df["salary"].apply(clean_salary)
 
-# 7. Extract skills from title ✅ ONLY ONE skills_list assignment
 TITLE_SKILL_MAP = [
     "python", "machine learning", "deep learning", "nlp",
     "computer vision", "tensorflow", "pytorch", "keras",
@@ -92,21 +89,23 @@ TITLE_SKILL_MAP = [
 def extract_skills_from_title(row):
     if isinstance(row["skills"], str) and row["skills"].strip() not in ["", "nan"]:
         return [s.strip().lower() for s in row["skills"].split(",") if s.strip()]
-    
     title = str(row.get("title_clean", "")).lower()
     found = []
-    
     for skill in TITLE_SKILL_MAP:
-        # ✅ Use word boundary so "r" only matches the word "r" not inside words
         pattern = r'\b' + re.escape(skill) + r'\b'
         if re.search(pattern, title):
             found.append(skill)
-    
     return found if found else ["general ai/ml"]
 
-df["skills_list"] = df.apply(extract_skills_from_title, axis=1)  # ✅ ONLY THIS ONE
+df["skills_list"] = df.apply(extract_skills_from_title, axis=1)
 
-# Save cleaned data
+# ── FIX 1: Convert list → comma-separated string for MySQL storage ──
+df["skills_clean"] = df["skills_list"].apply(
+    lambda x: ", ".join(x) if isinstance(x, list) else str(x)
+)
+
+# Save cleaned CSV (keep skills_list as string in CSV too)
+df["skills_list_str"] = df["skills_clean"]   # readable column for CSV
 df.to_csv("cleaned_jobs.csv", index=False)
 print(f"✅ Cleaned data saved: {len(df)} records")
 
@@ -121,8 +120,9 @@ for skills in df["skills_list"]:
 all_skills = [s for s in all_skills if s.strip() not in ["", "nan", "none"]]
 print(f"Total skill mentions: {len(all_skills)}")
 
+# ── FIX 2: Always define skill_df so final to_sql() never crashes ──
 if len(all_skills) == 0:
-    print("⚠️ No skills found")
+    print("⚠ No skills found")
     skill_df = pd.DataFrame(columns=["skill", "count", "percentage"])
 else:
     skill_counts = Counter(all_skills)
@@ -150,9 +150,10 @@ conn.close()
 
 engine = create_engine(f"mysql+mysqlconnector://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}")
 
+# ── Use skills_clean (string) instead of skills_list (list) ──
 jobs_to_store = df[[
     "title", "company", "experience", "salary_clean",
-    "location", "skills", "posted", "search_query",
+    "location", "skills_clean", "posted", "search_query",
     "job_category", "exp_min_years", "is_fresher_friendly", "scraped_at"
 ]]
 jobs_to_store.to_sql("jobs", engine, if_exists="replace", index=False)

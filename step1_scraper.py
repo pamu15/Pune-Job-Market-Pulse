@@ -1,257 +1,256 @@
 # ============================================================
-# STEP 1: SCRAPE JOB POSTINGS FROM NAUKRI & INDEED
+# JOB SCRAPER — Naukri + Internshala
 # ============================================================
 
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from bs4 import BeautifulSoup
+import requests
 import pandas as pd
 import time
 import random
 from datetime import datetime
-import os
-
 
 # ---------------- CONFIG ----------------
-SEARCH_QUERIES = [
-"Data Analyst",
-"Data Scientist",
-"Machine Learning Engineer",
-"Junior Data Scientist",
- "AI & ML intern",
- "machine learning intern",
- "Data Science intern",
- "Data Analyst intern",
- "Ai intern"]
+NAUKRI_QUERIES = [
+    "Data Analyst",
+    "Data Scientist",
+    "Machine Learning Engineer",
+    "Junior Data Scientist",
+]
 
-LOCATION = "Pune"
-MAX_PAGES = 3
+INTERNSHALA_QUERIES = [
+    "data-science",
+    "machine-learning",
+    "data-analyst",
+    "artificial-intelligence",
+    "python",
+]
+
+LOCATION    = "Pune"
+MAX_PAGES   = 3
+OUTPUT_FILE = "raw_jobs.csv"
 
 
-# ---------------- DRIVER ----------------
+# ============================================================
+# DRIVER
+# ============================================================
 def init_driver():
     options = uc.ChromeOptions()
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-
+    # options.add_argument("--headless=new")
     driver = uc.Chrome(options=options, use_subprocess=True)
+    driver.set_page_load_timeout(30)
     return driver
 
-# ---------------- SCRAPER ----------------
-def scrape_naukri(driver,query, location, max_pages=3):
 
-    driver = init_driver()
+# ============================================================
+# NAUKRI SCRAPER
+# ============================================================
+def scrape_naukri(driver, query, location, max_pages=3):
     jobs = []
 
-    try:
-        for page in range(max_pages):
+    for page in range(max_pages):
+        url = (
+            f"https://www.naukri.com/{query.lower().replace(' ', '-')}-jobs"
+            f"-in-{location.lower()}?pageNo={page + 1}"
+        )
+        print(f"  [Naukri] Page {page + 1}: {url}")
 
-            url = f"https://www.naukri.com/{query.replace(' ', '-')}-jobs-in-{location.lower()}?pageNo={page+1}"
-            print("Scraping:", url)
-
+        try:
             driver.get(url)
-            time.sleep(random.uniform(5, 10))
+            time.sleep(random.uniform(5, 9))
 
             try:
-                
-                WebDriverWait(driver, 10).until(
-                EC.presence_of_all_elements_located((By.CSS_SELECTOR, "article.jobTuple"))
-            
-                
-)
-                
-            except:
-                print(f"No jobs found on page {page+1}")
+                WebDriverWait(driver, 15).until(
+                    EC.presence_of_all_elements_located(
+                        (By.CSS_SELECTOR, "div.srp-jobtuple-wrapper")
+                    )
+                )
+            except Exception:
+                print(f"    ⚠ No cards found on page {page + 1}")
                 continue
 
-            job_cards = driver.find_elements(By.CSS_SELECTOR, "article.jobTuple")
-            print("Found:", len(job_cards))
+            cards = driver.find_elements(By.CSS_SELECTOR, "div.srp-jobtuple-wrapper")
+            print(f"    Found {len(cards)} cards")
 
-            for card in job_cards:
+            for card in cards:
+                def get(selector, attr=None):
+                    try:
+                        el = card.find_element(By.CSS_SELECTOR, selector)
+                        return el.get_attribute(attr) if attr else el.text.strip()
+                    except Exception:
+                        return "N/A"
+
+                title      = get("a.title")
+                company    = get("a.comp-name")
+                experience = get("span.expwdth")
+                salary     = get("span.sal")
+                loc        = get("span.locWdth")
+                posted     = get("span.job-post-day")
+
+                # JavaScript executor reliably gets href even with lazy loading
+                try:
+                    anchor = card.find_element(By.CSS_SELECTOR, "a.title")
+                    job_link = driver.execute_script("return arguments[0].href;", anchor)
+                    if not job_link:
+                        job_link = "N/A"
+                except Exception:
+                    job_link = "N/A"
 
                 try:
-                    title = card.find_element(By.CSS_SELECTOR, "a.title").text.strip()
-                except:
-                    title = "N/A"
+                    skill_els = card.find_elements(By.CSS_SELECTOR, "ul.tags-gt li")
+                    skills = ", ".join(s.text.strip() for s in skill_els if s.text.strip())
+                except Exception:
+                    skills = "N/A"
 
-                try:
-                    company = card.find_element(By.CSS_SELECTOR, "a.subTitle").text.strip()
-                except:
-                    company = "N/A"
+                jobs.append({
+                    "source":       "Naukri",
+                    "title":        title,
+                    "company":      company,
+                    "experience":   experience,
+                    "salary":       salary,
+                    "location":     loc,
+                    "skills":       skills,
+                    "posted":       posted,
+                    "job_link":     job_link,
+                    "search_query": query,
+                    "scraped_at":   datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                })
 
-                try:
-                    experience = card.find_element(By.CSS_SELECTOR, "li.experience span").text.strip()
-                except:
-                    experience = "N/A"
+        except Exception as e:
+            print(f"    ✗ Error: {e}")
 
-                try:
-                    salary = card.find_element(By.CSS_SELECTOR, "li.salary span").text.strip()
-                except:
-                    salary = "Not Disclosed"
+    return jobs
 
-                try:
-                    location_text = card.find_element(By.CSS_SELECTOR, "li.location span").text.strip()
-                except:
-                    location_text = "N/A"
 
-                try:
-                    skills_elements = card.find_elements(By.CSS_SELECTOR, "li.tag-li")
-                    skills = [s.text.strip() for s in skills_elements if s.text.strip()]
-                except:
-                    skills = []
+# ============================================================
+# INTERNSHALA SCRAPER
+# ============================================================
+INTERNSHALA_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://internshala.com/",
+}
 
-                try:
-                    posted = card.find_element(By.CSS_SELECTOR, "span.type").text.strip()
-                except:
-                    posted = "N/A"
+def scrape_internshala(query, location, max_pages=3):
+    jobs    = []
+    session = requests.Session()
+    session.headers.update(INTERNSHALA_HEADERS)
 
+    city = location.lower()
+
+    for page in range(1, max_pages + 1):
+        url = (
+            f"https://internshala.com/internships/keywords-{query}"
+            f"/location-{city}/page-{page}/"
+        )
+        print(f"  [Internshala] Page {page}: {url}")
+
+        try:
+            resp = session.get(url, timeout=15)
+            soup = BeautifulSoup(resp.text, "html.parser")
+
+            cards = soup.select("div.internship_meta")
+            if not cards:
+                cards = soup.select("div.individual_internship")
+
+            print(f"    Found {len(cards)} cards")
+
+            for card in cards:
+                def txt(selector, default="N/A"):
+                    el = card.select_one(selector)
+                    return el.get_text(strip=True) if el else default
+
+                title    = txt("h3.job-internship-name") or txt("div.profile")
+                company  = txt("h4.company-name") or txt("a.link_display_like_text")
+                loc      = txt("div.location_link") or txt("a.location_link")
+                stipend  = txt("span.stipend") or txt("div.stipend")
+                duration = txt("div.item_body.duration") or txt("span.duration")
+                posted   = txt("div.posted_by_container time") or txt("div.status-li")
+
+                # Fix: correct Internshala link selectors
                 try:
-                    job_link = card.find_element(By.CSS_SELECTOR, "a.title").get_attribute("href")
-                except:
+                    a_tag = card.select_one("a.job-title-href") \
+                         or card.select_one("div.profile a") \
+                         or card.select_one("h3 a") \
+                         or card.select_one("a[href*='/internship/detail']")
+                    if a_tag and a_tag.has_attr("href"):
+                        raw = a_tag["href"]
+                        job_link = ("https://internshala.com" + raw) if raw.startswith("/") else raw
+                    else:
+                        job_link = "N/A"
+                except Exception:
                     job_link = "N/A"
 
                 jobs.append({
-                    "title": title,
-                    "company": company,
-                    "experience": experience,
-                    "salary": salary,
-                    "location": location_text,
-                    "skills": ", ".join(skills),
-                    "posted": posted,
-                    "job_link": job_link,
+                    "source":       "Internshala",
+                    "title":        title,
+                    "company":      company,
+                    "experience":   "Fresher/Intern",
+                    "salary":       stipend,
+                    "location":     loc,
+                    "skills":       duration,
+                    "posted":       posted,
+                    "job_link":     job_link,
                     "search_query": query,
-                    "scraped_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    "scraped_at":   datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 })
-    
-    finally:
-        try:
-            driver.quit()
-        except:
-            pass
-        
+
+            time.sleep(random.uniform(2, 5))
+
+        except Exception as e:
+            print(f"    ✗ Error: {e}")
+
     return jobs
 
-def scrape_indeed(driver,query, location, max_pages=3):
 
-    driver = init_driver()
-    jobs = []
-
-    try:
-        for page in range(max_pages):
-
-            url = f"https://in.indeed.com/jobs?q={query.replace(' ', '+')}&l={location}&start={page*10}"
-            print("Scraping:", url)
-
-            driver.get(url)
-            time.sleep(random.uniform(2, 6))
-
-            try:
-                WebDriverWait(driver, 10).until(
-                EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.job_seen_beacon")))
-                
-            except:
-                print(f"No jobs found on page {page+1}")
-                continue
-
-            job_cards = driver.find_elements(By.CSS_SELECTOR, "div.job_seen_beacon")
-            print("Found:", len(job_cards))
-
-            for card in job_cards:
-
-                try:
-                    title = card.find_element(By.CSS_SELECTOR, "h2.jobTitle span").text
-                except:
-                    title = "N/A"
-
-                try:
-                    company = card.find_element(By.CSS_SELECTOR, "span.companyName").text
-                except:
-                    company = "N/A"
-
-                try:
-                    experience = card.find_element(By.CSS_SELECTOR, "div.metadata span").text.strip()
-
-                except:
-                    experience = "N/A"
-
-                try:
-                    salary = card.find_element(By.CSS_SELECTOR, "li.salary span").text.strip()
-                except:
-                    salary = "Not Disclosed"
-
-                try:
-                    location_text = card.find_element(By.CSS_SELECTOR, "div.companyLocation").text
-                except:
-                    location_text = "N/A"
-
-                try:
-                    skills_elements = card.find_elements(By.CSS_SELECTOR, "li.tag-li")
-                    skills = [s.text.strip() for s in skills_elements if s.text.strip()]
-                except:
-                    skills = []
-
-                try:
-                    posted = card.find_element(By.CSS_SELECTOR, "span.type").text.strip()
-                except:
-                    posted = "N/A"
-
-                try:
-                    job_link = card.find_element(By.CSS_SELECTOR, "h2.jobTitle a").get_attribute("href")
-                except:
-                    job_link = "N/A"
-
-                jobs.append({
-                    "title": title,
-                    "company": company,
-                    "experience": experience,
-                    "salary": salary,
-                    "location": location_text,
-                    "skills": ", ".join(skills),
-                    "posted": posted,
-                    "job_link": job_link,
-                    "search_query": query,
-                    "scraped_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                })
-    
-    finally:
-        try:
-            driver.quit()
-        except:
-            pass
-        
-    return jobs
-
-# ---------------- MAIN ----------------
+# ============================================================
+# MAIN
+# ============================================================
 if __name__ == "__main__":
-   
-    
+
     all_jobs = []
 
-    driver = init_driver()                
+    # ── NAUKRI (Selenium) ────────────────────────────────────────────────
+    print("\n========== NAUKRI ==========")
+    driver = init_driver()
+    try:
+        for query in NAUKRI_QUERIES:
+            print(f"\n→ Query: {query}")
+            jobs = scrape_naukri(driver, query, LOCATION, MAX_PAGES)
+            all_jobs.extend(jobs)
+            print(f"  +{len(jobs)} jobs  |  Total: {len(all_jobs)}")
+            time.sleep(random.uniform(4, 8))
+    finally:
+        driver.quit()
 
-    for query in SEARCH_QUERIES:
-        print("\nSearching:", query)
+    # ── INTERNSHALA (requests, no login needed) ──────────────────────────
+    print("\n========== INTERNSHALA ==========")
+    for query in INTERNSHALA_QUERIES:
+        print(f"\n→ Query: {query}")
+        jobs = scrape_internshala(query, LOCATION, MAX_PAGES)
+        all_jobs.extend(jobs)
+        print(f"  +{len(jobs)} jobs  |  Total: {len(all_jobs)}")
+        time.sleep(random.uniform(3, 6))
 
-        naukri_jobs = scrape_naukri(driver, query, LOCATION, MAX_PAGES)   
-        indeed_jobs = scrape_indeed(driver, query, LOCATION, MAX_PAGES)   
-
-        all_jobs.extend(naukri_jobs)
-        all_jobs.extend(indeed_jobs)
-
-        print("Total jobs so far:", len(all_jobs))
-        time.sleep(random.uniform(5, 10))
-
-    driver.quit()                         
-    
-    if len(all_jobs) > 0:
+    # ── SAVE CSV ─────────────────────────────────────────────────────────
+    print(f"\n========== SAVING ==========")
+    if all_jobs:
         df = pd.DataFrame(all_jobs)
-        df.drop_duplicates(subset=["title", "company", "location"], inplace=True)  # ✅ dedup
-        df.to_csv("raw_jobs.csv", index=False)
-        print("✅ File saved successfully")
+        before = len(df)
+        df.drop_duplicates(subset=["title", "company", "location"], inplace=True)
+        after = len(df)
+        df.to_csv(OUTPUT_FILE, index=False)
+        print(f"✅ Saved {after} unique jobs to '{OUTPUT_FILE}'  ({before - after} duplicates removed)")
+        print("\nSample rows:")
+        print(df[["source", "title", "company", "location", "job_link"]].head(10).to_string(index=False))
     else:
-        print("❌ No jobs collected")
-    
-  
-
-   
+        print("❌ No jobs collected — check your internet connection.")

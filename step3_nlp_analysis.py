@@ -18,13 +18,16 @@ os.makedirs("charts", exist_ok=True)
 # ---- LOAD DATA ----
 df = pd.read_csv("cleaned_jobs.csv")
 
-# ✅ FIX 1: Fill NaN values immediately after loading
-df["title"]      = df["title"].fillna("unknown").astype(str)
-df["company"]    = df["company"].fillna("unknown").astype(str)
-df["skills"]     = df["skills"].fillna("").astype(str)
+df["title"]        = df["title"].fillna("unknown").astype(str)
+df["company"]      = df["company"].fillna("unknown").astype(str)
+df["skills"]       = df["skills"].fillna("").astype(str)
 df["job_category"] = df["job_category"].fillna("Other").astype(str)
 
-# ✅ FIX 2: Rebuild skills_list using TITLE_SKILL_MAP (same as Step 2)
+# Rebuild skills_list from skills_clean column (saved as string in CSV)
+df["skills_list"] = df["skills_clean"].fillna("").apply(
+    lambda x: [s.strip().lower() for s in x.split(",") if s.strip()]
+)
+
 TITLE_SKILL_MAP = [
     "python", "machine learning", "deep learning", "nlp",
     "computer vision", "tensorflow", "pytorch", "keras",
@@ -38,10 +41,8 @@ TITLE_SKILL_MAP = [
 ]
 
 def extract_skills_from_title(row):
-    # Use scraped skills if available
-    if isinstance(row["skills"], str) and row["skills"].strip() not in ["", "nan"]:
-        return [s.strip().lower() for s in row["skills"].split(",") if s.strip()]
-    # Combine title + search_query for better matching
+    if isinstance(row["skills_list"], list) and len(row["skills_list"]) > 0:
+        return row["skills_list"]
     title    = str(row.get("title", "")).lower()
     query    = str(row.get("search_query", "")).lower()
     combined = title + " " + query
@@ -50,7 +51,6 @@ def extract_skills_from_title(row):
         pattern = r'\b' + re.escape(skill) + r'\b'
         if re.search(pattern, combined):
             found.append(skill)
-    # Fallback based on job_category
     if not found:
         category = str(row.get("job_category", "")).lower()
         if "ml engineer" in category or "machine learning" in category:
@@ -69,10 +69,8 @@ def extract_skills_from_title(row):
 
 df["skills_list"] = df.apply(extract_skills_from_title, axis=1)
 
-# ✅ FIX 3: Load skill_frequency safely
 skill_df = pd.read_csv("skill_frequency.csv")
 if skill_df.empty:
-    # Rebuild from skills_list if CSV is empty
     all_skills_temp = []
     for skills in df["skills_list"]:
         if isinstance(skills, list):
@@ -80,9 +78,9 @@ if skill_df.empty:
     skill_counts = Counter(all_skills_temp)
     skill_df = pd.DataFrame(skill_counts.most_common(50), columns=["skill", "count"])
     skill_df["percentage"] = (skill_df["count"] / len(df) * 100).round(1)
-    print("⚠️ skill_frequency.csv was empty — rebuilt from skills_list")
+    print(" skill_frequency.csv was empty — rebuilt from skills_list")
 
-print(f"✅ Loaded {len(df)} jobs and {len(skill_df)} skills")
+print(f" Loaded {len(df)} jobs and {len(skill_df)} skills")
 
 # ============================================================
 # CHART 1: TOP 15 SKILLS BAR CHART
@@ -100,9 +98,9 @@ if not top15.empty:
                  f"{pct}%", va="center", fontsize=10)
     plt.savefig("charts/top15_skills.png", dpi=150, bbox_inches="tight")
     plt.close()
-    print("✅ Chart 1 saved: top15_skills.png")
+    print(" Chart 1 saved: top15_skills.png")
 else:
-    print("⚠️ Chart 1 skipped: no skill data")
+    print(" Chart 1 skipped: no skill data")
 
 # ============================================================
 # CHART 2: JOBS BY CATEGORY PIE CHART
@@ -119,15 +117,15 @@ if not cat_counts.empty:
     plt.title("Job Distribution by Category — Pune 2026", fontsize=14, fontweight="bold")
     plt.savefig("charts/job_category_pie.png", dpi=150, bbox_inches="tight")
     plt.close()
-    print("✅ Chart 2 saved: job_category_pie.png")
+    print(" Chart 2 saved: job_category_pie.png")
 else:
-    print("⚠️ Chart 2 skipped: no category data")
+    print(" Chart 2 skipped: no category data")
 
 # ============================================================
 # CHART 3: FRESHER FRIENDLY vs EXPERIENCED
 # ============================================================
-fresher_counts = df["is_fresher_friendly"].value_counts()
-fresher_val    = int(fresher_counts.get(True, 0))
+fresher_counts  = df["is_fresher_friendly"].value_counts()
+fresher_val     = int(fresher_counts.get(True, 0))
 experienced_val = int(fresher_counts.get(False, 0))
 labels = ["Fresher Friendly\n(0-1 yr)", "Experienced\n(2+ yrs)"]
 values = [fresher_val, experienced_val]
@@ -146,16 +144,15 @@ if sum(values) > 0:
     plt.tight_layout()
     plt.savefig("charts/fresher_vs_experienced.png", dpi=150, bbox_inches="tight")
     plt.close()
-    print("✅ Chart 3 saved: fresher_vs_experienced.png")
+    print(" Chart 3 saved: fresher_vs_experienced.png")
 else:
-    print("⚠️ Chart 3 skipped: no fresher data")
+    print(" Chart 3 skipped: no fresher data")
 
 # ============================================================
 # CHART 4: SKILL CO-OCCURRENCE HEATMAP
 # ============================================================
 top10_skills = skill_df.head(10)["skill"].tolist()
 
-# Only build heatmap if we have enough skills
 if len(top10_skills) >= 2:
     co_matrix = pd.DataFrame(0, index=top10_skills, columns=top10_skills)
 
@@ -173,14 +170,13 @@ if len(top10_skills) >= 2:
     plt.tight_layout()
     plt.savefig("charts/skill_cooccurrence.png", dpi=150, bbox_inches="tight")
     plt.close()
-    print("✅ Chart 4 saved: skill_cooccurrence.png")
+    print(" Chart 4 saved: skill_cooccurrence.png")
 else:
-    print("⚠️ Chart 4 skipped: not enough skills for heatmap")
+    print(" Chart 4 skipped: not enough skills for heatmap")
 
 # ============================================================
 # CHART 5: TOP HIRING COMPANIES
 # ============================================================
-# ✅ FIX 4: Filter out unknown/NA companies before plotting
 company_counts = df[
     ~df["company"].str.lower().isin(["unknown", "n/a", "na", ""])
 ]["company"].value_counts().head(10)
@@ -194,9 +190,9 @@ if not company_counts.empty:
     plt.tight_layout()
     plt.savefig("charts/top_companies.png", dpi=150, bbox_inches="tight")
     plt.close()
-    print("✅ Chart 5 saved: top_companies.png")
+    print(" Chart 5 saved: top_companies.png")
 else:
-    print("⚠️ Chart 5 skipped: no valid company data found")
+    print(" Chart 5 skipped: no valid company data found")
 
 # ============================================================
 # CHART 6: WORD CLOUD OF ALL SKILLS
@@ -222,21 +218,19 @@ if all_skills_text.strip():
     plt.title("Skill Cloud — Pune Data Jobs 2026", fontsize=16, fontweight="bold")
     plt.savefig("charts/skill_wordcloud.png", dpi=150, bbox_inches="tight")
     plt.close()
-    print("✅ Chart 6 saved: skill_wordcloud.png")
+    print(" Chart 6 saved: skill_wordcloud.png")
 else:
-    print("⚠️ Chart 6 skipped: no skills text available")
+    print(" Chart 6 skipped: no skills text available")
 
 # ============================================================
 # GENERATE KEY INSIGHTS
 # ============================================================
-total_jobs    = len(df)
-fresher_jobs  = int(df["is_fresher_friendly"].sum())
+total_jobs   = len(df)
+fresher_jobs = int(df["is_fresher_friendly"].sum())
 
-# ✅ FIX 5: Safe access with fallbacks for all insight values
-top_skill      = skill_df.iloc[0]["skill"]      if not skill_df.empty else "N/A"
-top_skill_pct  = skill_df.iloc[0]["percentage"] if not skill_df.empty else 0
+top_skill     = skill_df.iloc[0]["skill"]      if not skill_df.empty else "N/A"
+top_skill_pct = skill_df.iloc[0]["percentage"] if not skill_df.empty else 0
 
-# ✅ FIX 6: Safe top_company — skip unknown values
 valid_companies = df[~df["company"].str.lower().isin(["unknown", "n/a", "na", ""])]
 top_company = valid_companies["company"].value_counts().index[0] \
               if not valid_companies.empty else "N/A"
@@ -267,5 +261,5 @@ print(f"Most demanded skill     : {top_skill} ({top_skill_pct}% of postings)")
 print(f"Top hiring company      : {top_company}")
 print(f"Most common role        : {most_common_category}")
 print(f"Top 10 skills           : {', '.join(insights['top_10_skills'])}")
-print("\n✅ All charts saved in /charts folder")
-print("✅ insights.json saved")
+print("\n All charts saved in /charts folder")
+print(" insights.json saved")
