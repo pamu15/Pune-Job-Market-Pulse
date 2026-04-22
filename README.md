@@ -140,8 +140,6 @@ to avoid Naukri ToS issues. Push only the code files.
 6. Main file: step4_dashboard.py
 7. Click Deploy!
 
-✅ You will get a live URL like:
-https://pamu15-pune-job-pulse.streamlit.app
 
 This is the link you put on your resume!
 
