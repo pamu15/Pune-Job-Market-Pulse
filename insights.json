@@ -1,10 +1,10 @@
 {
-  "total_jobs_scraped": 181,
-  "fresher_friendly_jobs": 20,
-  "fresher_percentage": 11.0,
+  "total_jobs_scraped": 185,
+  "fresher_friendly_jobs": 11,
+  "fresher_percentage": 5.9,
   "top_skill": "machine learning",
-  "top_skill_percentage": 50.8,
-  "top_hiring_company": "Infosys",
+  "top_skill_percentage": 54.1,
+  "top_hiring_company": "Tata Consultancy Services",
   "most_common_role": "Data Scientist",
   "top_10_skills": [
     "machine learning",
@@ -13,9 +13,9 @@
     "artificial intelligence",
     "natural language processing",
     "sql",
-    "data",
     "data analytics",
-    "computer science",
-    "data science"
+    "data science",
+    "deep learning",
+    "data"
   ]
 }

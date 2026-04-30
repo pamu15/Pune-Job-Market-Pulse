@@ -1,51 +1,51 @@
 skill,count,percentage
-machine learning,92,50.8
-python,70,38.7
-data analysis,57,31.5
-artificial intelligence,38,21.0
-natural language processing,28,15.5
-sql,27,14.9
-data,26,14.4
-data analytics,24,13.3
-computer science,24,13.3
-data science,23,12.7
-deep learning,22,12.2
-power bi,20,11.0
-machine,19,10.5
-analytical,18,9.9
-data mining,14,7.7
-cloud,13,7.2
-data visualization,12,6.6
-data analyst,12,6.6
-tensorflow,12,6.6
-analytics,11,6.1
-gcp,11,6.1
-generative ai,11,6.1
-forecasting,11,6.1
-data quality,10,5.5
-data management,10,5.5
-ai,9,5.0
-automation,9,5.0
-data scientist,9,5.0
-troubleshooting,8,4.4
-monitoring,8,4.4
-llm,8,4.4
-analysis,7,3.9
-aws,7,3.9
-healthcare,7,3.9
-coding,7,3.9
-computer vision,7,3.9
-langchain,7,3.9
-operations,7,3.9
-data modeling,6,3.3
-data validation,6,3.3
-excel,6,3.3
-scikit-learn,6,3.3
-processing,6,3.3
-mysql,6,3.3
-neural networks,6,3.3
-pytorch,6,3.3
-predictive modeling,6,3.3
-mlops,6,3.3
-open source,6,3.3
-tableau,5,2.8
+machine learning,100,54.1
+python,74,40.0
+data analysis,48,25.9
+artificial intelligence,47,25.4
+natural language processing,35,18.9
+sql,31,16.8
+data analytics,29,15.7
+data science,29,15.7
+deep learning,27,14.6
+data,26,14.1
+power bi,26,14.1
+analytics,21,11.4
+analytical,20,10.8
+computer science,18,9.7
+machine,18,9.7
+predictive modeling,13,7.0
+data scientist,12,6.5
+tensorflow,12,6.5
+data visualization,11,5.9
+monitoring,11,5.9
+computer vision,11,5.9
+generative ai,11,5.9
+operations,10,5.4
+data mining,10,5.4
+bi,10,5.4
+science,10,5.4
+gcp,10,5.4
+intelligence,9,4.9
+neural networks,9,4.9
+data modeling,8,4.3
+tableau,8,4.3
+statistics,8,4.3
+aws,8,4.3
+open source,8,4.3
+data management,7,3.8
+data analyst,7,3.8
+snowflake,7,3.8
+coding,7,3.8
+data quality,7,3.8
+numpy,7,3.8
+cloud,7,3.8
+forecasting,7,3.8
+pytorch,7,3.8
+deployment,7,3.8
+ai,7,3.8
+mlops,7,3.8
+automation,6,3.2
+data validation,6,3.2
+agile,6,3.2
+etl,6,3.2
