@@ -1,11 +1,14 @@
 # ============================================================
-# JOB SCRAPER — Naukri + Internshala
+# JOB SCRAPER — Naukri + Internshala  (FIXED FOR WINDOWS)
 # ============================================================
 
-import undetected_chromedriver as uc
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 import requests
 import pandas as pd
@@ -35,20 +38,36 @@ OUTPUT_FILE = "raw_jobs.csv"
 
 
 # ============================================================
-# DRIVER
+# DRIVER  
 # ============================================================
 def init_driver():
-    options = uc.ChromeOptions()
+    options = Options()
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    # options.add_argument("--headless=new")
-    driver = uc.Chrome(options=options, use_subprocess=True)
+    options.add_argument("--disable-gpu")
+    options.add_argument("--start-maximized")
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_experimental_option("excludeSwitches", ["enable-automation", "enable-logging"])
+    options.add_experimental_option("useAutomationExtension", False)
+    options.add_argument(
+        "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    )
+
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=options)
+
+    # Hide webdriver flag so sites don't detect automation
+    driver.execute_script(
+        "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
+    )
     driver.set_page_load_timeout(30)
     return driver
 
 
 # ============================================================
-# NAUKRI SCRAPER
+# NAUKRI SCRAPER  
 # ============================================================
 def scrape_naukri(driver, query, location, max_pages=3):
     jobs = []
@@ -71,7 +90,7 @@ def scrape_naukri(driver, query, location, max_pages=3):
                     )
                 )
             except Exception:
-                print(f"    ⚠ No cards found on page {page + 1}")
+                print(f"    No cards found on page {page + 1}")
                 continue
 
             cards = driver.find_elements(By.CSS_SELECTOR, "div.srp-jobtuple-wrapper")
@@ -92,9 +111,8 @@ def scrape_naukri(driver, query, location, max_pages=3):
                 loc        = get("span.locWdth")
                 posted     = get("span.job-post-day")
 
-                # JavaScript executor reliably gets href even with lazy loading
                 try:
-                    anchor = card.find_element(By.CSS_SELECTOR, "a.title")
+                    anchor   = card.find_element(By.CSS_SELECTOR, "a.title")
                     job_link = driver.execute_script("return arguments[0].href;", anchor)
                     if not job_link:
                         job_link = "N/A"
@@ -122,13 +140,13 @@ def scrape_naukri(driver, query, location, max_pages=3):
                 })
 
         except Exception as e:
-            print(f"    ✗ Error: {e}")
+            print(f"    Error on page {page + 1}: {e}")
 
     return jobs
 
 
 # ============================================================
-# INTERNSHALA SCRAPER
+# INTERNSHALA SCRAPER  
 # ============================================================
 INTERNSHALA_HEADERS = {
     "User-Agent": (
@@ -144,7 +162,6 @@ def scrape_internshala(query, location, max_pages=3):
     jobs    = []
     session = requests.Session()
     session.headers.update(INTERNSHALA_HEADERS)
-
     city = location.lower()
 
     for page in range(1, max_pages + 1):
@@ -176,12 +193,13 @@ def scrape_internshala(query, location, max_pages=3):
                 duration = txt("div.item_body.duration") or txt("span.duration")
                 posted   = txt("div.posted_by_container time") or txt("div.status-li")
 
-                # Fix: correct Internshala link selectors
                 try:
-                    a_tag = card.select_one("a.job-title-href") \
-                         or card.select_one("div.profile a") \
-                         or card.select_one("h3 a") \
-                         or card.select_one("a[href*='/internship/detail']")
+                    a_tag = (
+                        card.select_one("a.job-title-href")
+                        or card.select_one("div.profile a")
+                        or card.select_one("h3 a")
+                        or card.select_one("a[href*='/internship/detail']")
+                    )
                     if a_tag and a_tag.has_attr("href"):
                         raw = a_tag["href"]
                         job_link = ("https://internshala.com" + raw) if raw.startswith("/") else raw
@@ -207,19 +225,19 @@ def scrape_internshala(query, location, max_pages=3):
             time.sleep(random.uniform(2, 5))
 
         except Exception as e:
-            print(f"    ✗ Error: {e}")
+            print(f"    Error: {e}")
 
     return jobs
 
 
 # ============================================================
-# MAIN
+# MAIN  
 # ============================================================
 if __name__ == "__main__":
 
     all_jobs = []
 
-    # ── NAUKRI (Selenium) ────────────────────────────────────────────────
+    # ── NAUKRI ──────────────────────────────────────────────
     print("\n========== NAUKRI ==========")
     driver = init_driver()
     try:
@@ -230,9 +248,12 @@ if __name__ == "__main__":
             print(f"  +{len(jobs)} jobs  |  Total: {len(all_jobs)}")
             time.sleep(random.uniform(4, 8))
     finally:
-        driver.quit()
+        try:
+            driver.quit()   
+        except Exception:
+            pass
 
-    # ── INTERNSHALA (requests, no login needed) ──────────────────────────
+    # ── INTERNSHALA ─────────────────────────────────────────
     print("\n========== INTERNSHALA ==========")
     for query in INTERNSHALA_QUERIES:
         print(f"\n→ Query: {query}")
@@ -241,7 +262,7 @@ if __name__ == "__main__":
         print(f"  +{len(jobs)} jobs  |  Total: {len(all_jobs)}")
         time.sleep(random.uniform(3, 6))
 
-    # ── SAVE CSV ─────────────────────────────────────────────────────────
+    # ── SAVE CSV ─────────────────────────────────────────────
     print(f"\n========== SAVING ==========")
     if all_jobs:
         df = pd.DataFrame(all_jobs)
@@ -249,8 +270,8 @@ if __name__ == "__main__":
         df.drop_duplicates(subset=["title", "company", "location"], inplace=True)
         after = len(df)
         df.to_csv(OUTPUT_FILE, index=False)
-        print(f"✅ Saved {after} unique jobs to '{OUTPUT_FILE}'  ({before - after} duplicates removed)")
+        print(f"Saved {after} unique jobs to '{OUTPUT_FILE}'  ({before - after} duplicates removed)")
         print("\nSample rows:")
         print(df[["source", "title", "company", "location", "job_link"]].head(10).to_string(index=False))
     else:
-        print("❌ No jobs collected — check your internet connection.")
+        print("No jobs collected — check your internet connection.")

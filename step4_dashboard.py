@@ -1,8 +1,6 @@
 # ============================================================
-# STEP 4: STREAMLIT DASHBOARD — LIVE WEB APP
-# ============================================================
-# Run with: streamlit run dashboard.py
-# ============================================================
+# STEP 4: STREAMLIT DASHBOARD — 
+
 
 import streamlit as st
 import pandas as pd
@@ -64,14 +62,15 @@ def extract_skills_from_title(row):
 
 # ============================================================
 # LOAD DATA
+
 # ============================================================
-@st.cache_data
+@st.cache_data(ttl=3600)
 def load_data():
     if not os.path.exists("cleaned_jobs.csv"):
-        st.error("❌ cleaned_jobs.csv not found. Please run Step 2 first.")
+        st.error("cleaned_jobs.csv not found. Please run Step 2 first.")
         st.stop()
     if not os.path.exists("skill_frequency.csv"):
-        st.error("❌ skill_frequency.csv not found. Please run Step 2 first.")
+        st.error(" skill_frequency.csv not found. Please run Step 2 first.")
         st.stop()
 
     df = pd.read_csv("cleaned_jobs.csv")
@@ -110,7 +109,48 @@ def load_data():
 
     return df, skill_df
 
+# ============================================================
+# SIDEBAR — FIX 2: MANUAL REFRESH BUTTON
+# ============================================================
+st.sidebar.header(" Controls")
+
+# ── REFRESH BUTTON ──────────────────────────────────────────
+if st.sidebar.button("🔄 Refresh Data"):
+    st.cache_data.clear()   # clears ALL cached data
+    st.rerun()              # immediately reruns the app with fresh data
+
+st.sidebar.markdown("---")
+st.sidebar.header("🔍 Filter Jobs")
+
+# ── Load data AFTER refresh button so clearing works correctly ──
 df, skill_df = load_data()
+
+all_categories = sorted(df["job_category"].dropna().unique().tolist())
+
+selected_category = st.sidebar.multiselect(
+    "Job Category",
+    options=all_categories,
+    default=all_categories
+)
+fresher_only = st.sidebar.checkbox(
+    "Show Fresher-Friendly Jobs Only (0-1 yr)", value=False
+)
+
+filtered_df = df[df["job_category"].isin(selected_category)] if selected_category else df.copy()
+
+if fresher_only:
+    filtered_df = filtered_df[filtered_df["is_fresher_friendly"] == True]
+
+# Show last updated time in sidebar
+if os.path.exists("cleaned_jobs.csv"):
+    import datetime
+    mod_time = os.path.getmtime("cleaned_jobs.csv")
+    last_updated = datetime.datetime.fromtimestamp(mod_time).strftime("%d %b %Y, %I:%M %p")
+    st.sidebar.markdown(f"🕒 **Last Updated:** {last_updated}")
+
+if filtered_df.empty:
+    st.warning(" No jobs match your current filters. Please adjust the filters.")
+    st.stop()
 
 # ============================================================
 # LOAD INSIGHTS
@@ -145,31 +185,6 @@ Real-time analysis of Data Science & Analytics job demand in Pune | Built by Pra
 """, unsafe_allow_html=True)
 
 # ============================================================
-# SIDEBAR FILTERS
-# ============================================================
-st.sidebar.header("🔍 Filter Jobs")
-
-all_categories = sorted(df["job_category"].dropna().unique().tolist())
-
-selected_category = st.sidebar.multiselect(
-    "Job Category",
-    options=all_categories,
-    default=all_categories
-)
-fresher_only = st.sidebar.checkbox(
-    "Show Fresher-Friendly Jobs Only (0-1 yr)", value=False
-)
-
-filtered_df = df[df["job_category"].isin(selected_category)] if selected_category else df.copy()
-
-if fresher_only:
-    filtered_df = filtered_df[filtered_df["is_fresher_friendly"] == True]
-
-if filtered_df.empty:
-    st.warning("⚠️ No jobs match your current filters. Please adjust the filters.")
-    st.stop()
-
-# ============================================================
 # METRIC CARDS
 # ============================================================
 col1, col2, col3, col4 = st.columns(4)
@@ -192,7 +207,7 @@ st.markdown("<br>", unsafe_allow_html=True)
 col_left, col_right = st.columns([2, 1])
 
 with col_left:
-    st.subheader("🔥 Top 15 In-Demand Skills in Pune")
+    st.subheader("🏆 Top 15 In-Demand Skills in Pune")
     if not skill_df.empty:
         top15 = skill_df.head(15).copy()
         fig_skills = px.bar(
@@ -216,7 +231,7 @@ with col_left:
         st.warning("⚠️ No skill data available")
 
 with col_right:
-    st.subheader("📁 Jobs by Category")
+    st.subheader("🥧 Jobs by Category")
     cat_counts = filtered_df["job_category"].value_counts().reset_index()
     cat_counts.columns = ["category", "count"]
     if not cat_counts.empty:
@@ -236,7 +251,7 @@ with col_right:
 col_a, col_b = st.columns(2)
 
 with col_a:
-    st.subheader("👩‍💻 Fresher vs Experienced Openings")
+    st.subheader("👶 Fresher vs Experienced Openings")
     fresher_val     = int(filtered_df["is_fresher_friendly"].sum())
     experienced_val = int((~filtered_df["is_fresher_friendly"]).sum())
     exp_data = pd.DataFrame({
@@ -302,8 +317,7 @@ st.info(f"""
 **SQL** appears in **{sql_pct}%** of postings.  
 But **Power BI** appears in only **{powerbi_pct}%** — meaning it's a **differentiator**, not a baseline requirement.
 
-👉 If you have Python + SQL + Power BI, you stand out from **most** fresher candidates in Pune.
-""")
+If you're targeting Pune's data science & analytics roles, mastering **Python** and **SQL** is essential to get past the resume screeners.""")
 
 # ============================================================
 # ROW 5: RAW DATA TABLE WITH JOB LINKS

@@ -1,7 +1,6 @@
 # ============================================================
-# STEP 3: NLP ANALYSIS — SKILL CO-OCCURRENCE + INSIGHTS
+# STEP 3: NLP ANALYSIS — 
 # ============================================================
-# pip install pandas matplotlib seaborn wordcloud nltk
 
 import pandas as pd
 import matplotlib.pyplot as plt

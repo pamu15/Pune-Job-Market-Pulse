@@ -1,15 +1,14 @@
 # ============================================================
 # STEP 2: CLEAN DATA + STORE IN MYSQL
 # ============================================================
-# FIXES APPLIED:
-#   1. skills_list (Python list) converted to string before MySQL storage
-#   2. skill_df safely initialized so final to_sql() never crashes
+
 # ============================================================
 
 import pandas as pd
 import mysql.connector
 from sqlalchemy import create_engine
 import re
+import subprocess
 from collections import Counter
 
 # ---- LOAD RAW DATA ----
@@ -161,3 +160,29 @@ print(f"\n✅ {len(jobs_to_store)} jobs stored in MySQL table: jobs")
 
 skill_df.to_sql("skill_frequency", engine, if_exists="replace", index=False)
 print(f"✅ {len(skill_df)} skills stored in MySQL table: skill_frequency")
+
+# ============================================================
+# FIX 3: AUTO GIT PUSH — Streamlit Cloud updates automatically
+# ============================================================
+print("\n========== PUSHING TO GITHUB ==========")
+try:
+    subprocess.run(["git", "add",
+                    "cleaned_jobs.csv",
+                    "skill_frequency.csv",
+                    "insights.json"],
+                   check=True)
+
+    subprocess.run(["git", "commit", "-m",
+                    f"Updated job data — {len(df)} records"],
+                   check=True)
+
+    subprocess.run(["git", "push"], check=True)
+
+    print(" Data pushed to GitHub — your Streamlit Cloud app will update in ~1 minute!")
+
+except subprocess.CalledProcessError as e:
+    print(f"  Git push failed: {e}")
+    print("   Make sure you have committed your repo at least once.")
+    print("   Run manually: git add cleaned_jobs.csv skill_frequency.csv insights.json")
+    print("                 git commit -m 'update data'")
+    print("                 git push")

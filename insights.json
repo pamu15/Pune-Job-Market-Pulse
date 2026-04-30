@@ -1,9 +1,9 @@
 {
-  "total_jobs_scraped": 185,
-  "fresher_friendly_jobs": 11,
-  "fresher_percentage": 5.9,
+  "total_jobs_scraped": 175,
+  "fresher_friendly_jobs": 12,
+  "fresher_percentage": 6.9,
   "top_skill": "machine learning",
-  "top_skill_percentage": 54.1,
+  "top_skill_percentage": 54.9,
   "top_hiring_company": "Tata Consultancy Services",
   "most_common_role": "Data Scientist",
   "top_10_skills": [
@@ -11,11 +11,11 @@
     "python",
     "data analysis",
     "artificial intelligence",
+    "data analytics",
     "natural language processing",
     "sql",
-    "data analytics",
-    "data science",
+    "data",
     "deep learning",
-    "data"
+    "data science"
   ]
 }
