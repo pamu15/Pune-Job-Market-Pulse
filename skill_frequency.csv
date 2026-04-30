@@ -1,51 +1,51 @@
 skill,count,percentage
-machine learning,100,54.1
-python,74,40.0
-data analysis,48,25.9
-artificial intelligence,47,25.4
-natural language processing,35,18.9
-sql,31,16.8
-data analytics,29,15.7
-data science,29,15.7
-deep learning,27,14.6
-data,26,14.1
-power bi,26,14.1
-analytics,21,11.4
-analytical,20,10.8
-computer science,18,9.7
-machine,18,9.7
-predictive modeling,13,7.0
-data scientist,12,6.5
-tensorflow,12,6.5
-data visualization,11,5.9
-monitoring,11,5.9
-computer vision,11,5.9
-generative ai,11,5.9
-operations,10,5.4
-data mining,10,5.4
-bi,10,5.4
-science,10,5.4
-gcp,10,5.4
-intelligence,9,4.9
-neural networks,9,4.9
-data modeling,8,4.3
-tableau,8,4.3
-statistics,8,4.3
-aws,8,4.3
-open source,8,4.3
-data management,7,3.8
-data analyst,7,3.8
-snowflake,7,3.8
-coding,7,3.8
-data quality,7,3.8
-numpy,7,3.8
-cloud,7,3.8
-forecasting,7,3.8
-pytorch,7,3.8
-deployment,7,3.8
-ai,7,3.8
-mlops,7,3.8
-automation,6,3.2
-data validation,6,3.2
-agile,6,3.2
-etl,6,3.2
+machine learning,96,54.9
+python,69,39.4
+data analysis,46,26.3
+artificial intelligence,44,25.1
+data analytics,29,16.6
+natural language processing,29,16.6
+sql,27,15.4
+data,25,14.3
+deep learning,25,14.3
+data science,24,13.7
+power bi,22,12.6
+computer science,20,11.4
+machine,20,11.4
+analytical,18,10.3
+analytics,16,9.1
+data scientist,11,6.3
+generative ai,11,6.3
+monitoring,10,5.7
+gcp,10,5.7
+tensorflow,10,5.7
+predictive modeling,9,5.1
+data mining,9,5.1
+intelligence,9,5.1
+computer vision,9,5.1
+data management,8,4.6
+data visualization,8,4.6
+coding,8,4.6
+data modeling,8,4.6
+science,8,4.6
+neural networks,8,4.6
+langchain,8,4.6
+automation,7,4.0
+data analyst,7,4.0
+bi,7,4.0
+snowflake,7,4.0
+statistics,7,4.0
+tableau,7,4.0
+cloud,7,4.0
+ai,7,4.0
+open source,7,4.0
+pytorch,7,4.0
+mlops,7,4.0
+operations,6,3.4
+data validation,6,3.4
+numpy,6,3.4
+etl,6,3.4
+ml,6,3.4
+languages,6,3.4
+data processing,6,3.4
+forecasting,6,3.4
